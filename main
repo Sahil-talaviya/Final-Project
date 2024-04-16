@@ -1,4 +1,6 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 struct Book {
     char holder[50];        //library user requesting a book hold
@@ -11,6 +13,17 @@ struct Hold{//Queue
     Book* Back;     //tail pointer
 } Hold;
 
+//structs for hash table
+typedef struct BookTitleKeyValuePair {
+    char* Title;
+    char* HashKey;
+    struct BookTitleKeyValuePair* NextKeyValuePair;
+} BookTitleKeyValuePair;
+
+typedef struct BookRegister {
+    BookTitleKeyValuePair* Table[SIZE];
+} BookRegister;
+
 
 //prototypes (queue)
 Hold* InishalizeQueue(void);
@@ -20,10 +33,15 @@ Book* CreateNewHold(char book[50], char name[50]);
 bool AreHolds (Hold* holds);
 Book* Front (Hold* hold);
 
+//prototypes (hash table)
+int GenerateHash(const char* Title);
+BookRegister* InitializeHashTable(void);
+BookTitleKeyValuePair* InitializeKeyValuePair(const char* Title, const char* HashKey);
+void AddToHashTable(BookRegister* hashTable, const char* Title, const char* HashKey);
+const char* SearchByTitleHashTable(BookRegister* hashTable, const char* word);
 
-
-int main(void){
-
+int main(int argc, const char* argv[]){
+BookRegister* hashTable = InitializeHashTable();
 
 }
 
@@ -119,6 +137,78 @@ Book* Front (Hold* hold){
     
 }
 
+//hash table===================================================================
+int GenerateHash(const char* Title) {
+    int hash = 0;
+    for (int i = 0; Title[i] != '\0'; i++) {
+        int asciiValue = Title[i];
+        hash = (hash + asciiValue) % SIZE;
+    }
+    return hash;
+}
+
+BookRegister* InitializeHashTable(void) {
+    BookRegister* hashTable = (BookRegister*)malloc(sizeof(BookRegister));
+    if (hashTable == NULL) {
+        printf("End of memory");
+        exit(EXIT_FAILURE);
+    }
+
+    for (int i = 0; i < SIZE; i++) {
+        hashTable->Table[i] = NULL;
+    }
+
+    return hashTable;
+}
+
+BookTitleKeyValuePair* InitializeKeyValuePair(const char* Title, const char* HashKey) {
+    BookTitleKeyValuePair* kvp = (BookTitleKeyValuePair*)malloc(sizeof(BookTitleKeyValuePair));
+    if (kvp == NULL) {
+        printf("EOM");
+        exit(EXIT_FAILURE);
+    }
+
+    kvp->Title = _strdup(Title);
+    kvp->HashKey = _strdup(HashKey);
+    kvp->NextKeyValuePair = NULL;
+    return kvp;
+}
+
+void AddToHashTable(BookRegister* hashTable, const char* Title, const char* HashKey) {
+    BookTitleKeyValuePair* kvp = InitializeKeyValuePair(Title, HashKey);
+    int hash = GenerateHash(Title);
+
+    if (hashTable->Table[hash] == NULL) { 
+        hashTable->Table[hash] = kvp;
+        return;
+    }
+
+    BookTitleKeyValuePair* current = hashTable->Table[hash];
+    while (current->NextKeyValuePair != NULL) {
+        current = current->NextKeyValuePair;
+    }
+
+    current->NextKeyValuePair = kvp;
+}
+
+const char* SearchByTitleHashTable(BookRegister* hashTable, const char* word) {
+    int hash = GenerateHash(word);
+
+    if (hashTable->Table[hash] == NULL) {
+        return "ERROR: cannot find the Key in the table.";
+    }
+
+    BookTitleKeyValuePair* current = hashTable->Table[hash];
+
+    while (current != NULL) {
+        if (strcmp(current->Title, word) == 0) {
+            return current->HashKey;
+        }
+        current = current->NextKeyValuePair;
+    }
+
+    return "ERROR: cannot find the Key in the table.";
+}
 
 
 
