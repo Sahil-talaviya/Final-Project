@@ -1,6 +1,24 @@
+#include <stdio.h>
+
+struct Book {
+    char holder[50];        //library user requesting a book hold
+    char title[50];         //book title
+    struct Book* NextHold;  //next user hold in queue
+} Book;
+
+struct Hold{//Queue
+    Book* Front;    //head pointer
+    Book* Back;     //tail pointer
+} Hold;
 
 
-
+//prototypes (queue)
+Hold* InishalizeQueue(void);
+char* DeQueue (Hold* hold);
+void EnQueue (Hold* hold, char book[50], char title[50]);
+Book* CreateNewHold(char book[50], char name[50]);
+bool AreHolds (Hold* holds);
+Book* Front (Hold* hold);
 
 
 
@@ -8,3 +26,99 @@ int main(void){
 
 
 }
+
+//inishalize queue
+Hold* InishalizeQueue(void){
+    Hold* holds = (Hold*)malloc(sizeof(Hold));
+    if(holds == NULL){
+    printf("No Memory");
+    exit(1);
+}
+
+Hold->Front = NULL;
+Hold->Back = NULL;
+return holds;
+}
+
+
+//dequeue
+char* DeQueue (Hold* hold){
+    if(AreHolds(hold)){
+        printf("Queue is Empty");
+        return -1;
+    }
+    
+    Node* holdToDeQueue = hold->Front;
+    char* dataToDeQueue = holdToDeQueue->holder;
+    hold->Front = holdToDeQueue->NextHold; // Resetting Head
+    free(holdToDeQueue); // Free Up Existing Head
+    return dataToDeQueue;
+    
+}
+
+
+//enqueue
+void EnQueue (Hold* hold, char book[50], char title[50]) {
+    if(hold == NULL){
+    hold = InititalizeQueue();
+    }
+
+    Book* toEnqueue = CreateNewHold(book, title);
+    if (AreHolds(hold)) {
+    hold->Front = toEnqueue;
+    hold->Back = toEnqueue;
+    } 
+    else {
+    hold->Back->NextHold = toEnqueue;
+    hold->Back = toEnqueue;
+    }
+}
+
+
+//new node
+Book* CreateNewHold(char book[50], char name[50]){
+    Book* newHold = (Book*)malloc(sizeof(Book));
+    if(newHold == NULL){
+        printf("No Memory");
+        exit(1);
+    }
+    char copyChar = '\0';
+    int copyIndex = 0;
+    do{
+    newHold->title[copyIndex] = book[copyIndex];
+    copyChar = newHold->title[copyIndex];
+    
+    }while(copyChar != NULL)
+    
+    do{
+    newHold->holder[copyIndex] = name[copyIndex];
+    copyChar = newHold->holder[copyIndex];
+    
+    }while(copyChar != NULL)
+    newHold->NextHold = NULL;
+    return newHold;
+}
+
+
+//is empty
+bool AreHolds (Hold* holds){
+    
+    return Hold->Front == NULL;
+}
+
+
+//front
+Book* Front (Hold* hold){
+    
+    if(AreHolds(hold)){
+        printf("Queue is Empty");
+        return -1;
+    }
+    
+    return hold->Front->holder;
+    
+}
+
+
+
+
