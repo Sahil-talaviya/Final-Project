@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 
 struct Book {
     char holder[50];        //library user requesting a book hold
@@ -105,11 +106,11 @@ Book* CreateNewHold(char book[50], char name[50]){
         exit(1);
     }
     char copyChar = '\0';
-    for(int i; i < 50; i++){
+    for(int i = 0; i < 50; i++){
         newHold->title[i] = book[i];
     }
     
-    for(int i; i < 50; i++){
+    for(int i = 0; i < 50; i++){
         newHold->holder[i] = name[i];
     }
     
