@@ -26,12 +26,12 @@ typedef struct BookRegister {
 
 
 //prototypes (queue)
-Hold* InishalizeQueue(void);
+Hold* InitializeQueue(void);
 char* DeQueue (Hold* hold);
 void EnQueue (Hold* hold, char book[50], char title[50]);
 Book* CreateNewHold(char book[50], char name[50]);
 bool AreHolds (Hold* holds);
-Book* Front (Hold* hold);
+char* Front (Hold* hold);
 
 //prototypes (hash table)
 int GenerateHash(const char* Title);
@@ -45,28 +45,31 @@ BookRegister* hashTable = InitializeHashTable();
 
 }
 
+
+//Queue===================================================================
+
 //inishalize queue
-Hold* InishalizeQueue(void){
+Hold* InitializeQueue(void){
     Hold* holds = (Hold*)malloc(sizeof(Hold));
     if(holds == NULL){
-    printf("No Memory");
-    exit(1);
-}
+        printf("No Memory");
+        exit(1);
+    }
 
-Hold->Front = NULL;
-Hold->Back = NULL;
-return holds;
+    holds->Front = NULL;
+    holds->Back = NULL;
+    return holds;
 }
 
 
 //dequeue
 char* DeQueue (Hold* hold){
-    if(AreHolds(hold)){
+    if(AreHolds(hold) == false){
         printf("Queue is Empty");
-        return -1;
+        return '\0';
     }
     
-    Node* holdToDeQueue = hold->Front;
+    Book* holdToDeQueue = hold->Front;
     char* dataToDeQueue = holdToDeQueue->holder;
     hold->Front = holdToDeQueue->NextHold; // Resetting Head
     free(holdToDeQueue); // Free Up Existing Head
@@ -78,17 +81,17 @@ char* DeQueue (Hold* hold){
 //enqueue
 void EnQueue (Hold* hold, char book[50], char title[50]) {
     if(hold == NULL){
-    hold = InititalizeQueue();
+        hold = InitializeQueue();
     }
 
     Book* toEnqueue = CreateNewHold(book, title);
     if (AreHolds(hold)) {
-    hold->Front = toEnqueue;
-    hold->Back = toEnqueue;
+        hold->Front = toEnqueue;
+        hold->Back = toEnqueue;
     } 
     else {
-    hold->Back->NextHold = toEnqueue;
-    hold->Back = toEnqueue;
+        hold->Back->NextHold = toEnqueue;
+        hold->Back = toEnqueue;
     }
 }
 
@@ -101,18 +104,14 @@ Book* CreateNewHold(char book[50], char name[50]){
         exit(1);
     }
     char copyChar = '\0';
-    int copyIndex = 0;
-    do{
-    newHold->title[copyIndex] = book[copyIndex];
-    copyChar = newHold->title[copyIndex];
+    for(int i; i < 50; i++){
+        newHold->title[i] = book[i];
+    }
     
-    }while(copyChar != NULL)
+    for(int i; i < 50; i++){
+        newHold->holder[i] = name[i];
+    }
     
-    do{
-    newHold->holder[copyIndex] = name[copyIndex];
-    copyChar = newHold->holder[copyIndex];
-    
-    }while(copyChar != NULL)
     newHold->NextHold = NULL;
     return newHold;
 }
@@ -120,21 +119,19 @@ Book* CreateNewHold(char book[50], char name[50]){
 
 //is empty
 bool AreHolds (Hold* holds){
-    
-    return Hold->Front == NULL;
+    return holds->Front == NULL;
 }
 
 
 //front
-Book* Front (Hold* hold){
+char* Front (Hold* hold){
     
     if(AreHolds(hold)){
         printf("Queue is Empty");
-        return -1;
+        return NULL;
     }
     
     return hold->Front->holder;
-    
 }
 
 //hash table===================================================================
