@@ -138,6 +138,7 @@ Book* Front (Hold* hold){
 }
 
 //hash table===================================================================
+//create the hash table
 int GenerateHash(const char* Title) {
     int hash = 0;
     for (int i = 0; Title[i] != '\0'; i++) {
@@ -147,6 +148,7 @@ int GenerateHash(const char* Title) {
     return hash;
 }
 
+//initialize the hash table
 BookRegister* InitializeHashTable(void) {
     BookRegister* hashTable = (BookRegister*)malloc(sizeof(BookRegister));
     if (hashTable == NULL) {
@@ -161,6 +163,7 @@ BookRegister* InitializeHashTable(void) {
     return hashTable;
 }
 
+//linking the key to the value
 BookTitleKeyValuePair* InitializeKeyValuePair(const char* Title, const char* HashKey) {
     BookTitleKeyValuePair* kvp = (BookTitleKeyValuePair*)malloc(sizeof(BookTitleKeyValuePair));
     if (kvp == NULL) {
@@ -174,15 +177,17 @@ BookTitleKeyValuePair* InitializeKeyValuePair(const char* Title, const char* Has
     return kvp;
 }
 
+//Add to hash table - seperate chaining method
 void AddToHashTable(BookRegister* hashTable, const char* Title, const char* HashKey) {
     BookTitleKeyValuePair* kvp = InitializeKeyValuePair(Title, HashKey);
     int hash = GenerateHash(Title);
 
-    if (hashTable->Table[hash] == NULL) { 
+    if (hashTable->Table[hash] == NULL) { //bucket is empty
         hashTable->Table[hash] = kvp;
         return;
     }
 
+    //collision occured - create array
     BookTitleKeyValuePair* current = hashTable->Table[hash];
     while (current->NextKeyValuePair != NULL) {
         current = current->NextKeyValuePair;
@@ -191,6 +196,7 @@ void AddToHashTable(BookRegister* hashTable, const char* Title, const char* Hash
     current->NextKeyValuePair = kvp;
 }
 
+//Search hash table - seperate chaining method
 const char* SearchByTitleHashTable(BookRegister* hashTable, const char* word) {
     int hash = GenerateHash(word);
 
