@@ -1,57 +1,72 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
+#include <string.h>
 
-typedef struct Book {
+struct Book {
     char holder[50];        //library user requesting a book hold
     char title[50];         //book title
     struct Book* NextHold;  //next user hold in queue
 } Book;
 
-typedef struct Hold{//Queue
+struct Hold{//Queue
     Book* Front;    //head pointer
     Book* Back;     //tail pointer
 } Hold;
 
+//structs for hash table
+typedef struct BookTitleKeyValuePair {
+    char* Title;
+    char* HashKey;
+    struct BookTitleKeyValuePair* NextKeyValuePair;
+} BookTitleKeyValuePair;
 
-//prototypes
-Hold* InitializeQueue(void);
+typedef struct BookRegister {
+    BookTitleKeyValuePair* Table[SIZE];
+} BookRegister;
+
+
+//prototypes (queue)
+Hold* InishalizeQueue(void);
 char* DeQueue (Hold* hold);
 void EnQueue (Hold* hold, char book[50], char title[50]);
 Book* CreateNewHold(char book[50], char name[50]);
 bool AreHolds (Hold* holds);
-char* Front (Hold* hold);
+Book* Front (Hold* hold);
 
+//prototypes (hash table)
+int GenerateHash(const char* Title);
+BookRegister* InitializeHashTable(void);
+BookTitleKeyValuePair* InitializeKeyValuePair(const char* Title, const char* HashKey);
+void AddToHashTable(BookRegister* hashTable, const char* Title, const char* HashKey);
+const char* SearchByTitleHashTable(BookRegister* hashTable, const char* word);
 
-
-
-int main(void){
-
+int main(int argc, const char* argv[]){
+BookRegister* hashTable = InitializeHashTable();
 
 }
 
-//initialize queue
-Hold* InitializeQueue(void){
+//inishalize queue
+Hold* InishalizeQueue(void){
     Hold* holds = (Hold*)malloc(sizeof(Hold));
     if(holds == NULL){
-        printf("No Memory");
-        exit(1);
-    }
+    printf("No Memory");
+    exit(1);
+}
 
-    holds->Front = NULL;
-    holds->Back = NULL;
-    return holds;
+Hold->Front = NULL;
+Hold->Back = NULL;
+return holds;
 }
 
 
 //dequeue
 char* DeQueue (Hold* hold){
-    if(AreHolds(hold) == false){
+    if(AreHolds(hold)){
         printf("Queue is Empty");
-        return '\0';
+        return -1;
     }
     
-    Book* holdToDeQueue = hold->Front;
+    Node* holdToDeQueue = hold->Front;
     char* dataToDeQueue = holdToDeQueue->holder;
     hold->Front = holdToDeQueue->NextHold; // Resetting Head
     free(holdToDeQueue); // Free Up Existing Head
@@ -63,17 +78,17 @@ char* DeQueue (Hold* hold){
 //enqueue
 void EnQueue (Hold* hold, char book[50], char title[50]) {
     if(hold == NULL){
-        hold = InitializeQueue();
+    hold = InititalizeQueue();
     }
 
     Book* toEnqueue = CreateNewHold(book, title);
     if (AreHolds(hold)) {
-        hold->Front = toEnqueue;
-        hold->Back = toEnqueue;
+    hold->Front = toEnqueue;
+    hold->Back = toEnqueue;
     } 
     else {
-        hold->Back->NextHold = toEnqueue;
-        hold->Back = toEnqueue;
+    hold->Back->NextHold = toEnqueue;
+    hold->Back = toEnqueue;
     }
 }
 
@@ -86,14 +101,18 @@ Book* CreateNewHold(char book[50], char name[50]){
         exit(1);
     }
     char copyChar = '\0';
-    for(int i; i < 50; i++){
-        newHold->title[i] = book[i];
-    }
+    int copyIndex = 0;
+    do{
+    newHold->title[copyIndex] = book[copyIndex];
+    copyChar = newHold->title[copyIndex];
     
-    for(int i; i < 50; i++){
-        newHold->holder[i] = name[i];
-    }
+    }while(copyChar != NULL)
     
+    do{
+    newHold->holder[copyIndex] = name[copyIndex];
+    copyChar = newHold->holder[copyIndex];
+    
+    }while(copyChar != NULL)
     newHold->NextHold = NULL;
     return newHold;
 }
@@ -101,17 +120,98 @@ Book* CreateNewHold(char book[50], char name[50]){
 
 //is empty
 bool AreHolds (Hold* holds){
-    return holds->Front == NULL;
+    
+    return Hold->Front == NULL;
 }
 
 
 //front
-char* Front (Hold* hold){
+Book* Front (Hold* hold){
     
     if(AreHolds(hold)){
         printf("Queue is Empty");
-        return NULL;
+        return -1;
     }
     
     return hold->Front->holder;
+    
+}
+
+//hash table===================================================================
+//create the hash table
+int GenerateHash(const char* Title) {
+    int hash = 0;
+    for (int i = 0; Title[i] != '\0'; i++) {
+        int asciiValue = Title[i];
+        hash = (hash + asciiValue) % SIZE;
+    }
+    return hash;
+}
+
+//initialize the hash table
+BookRegister* InitializeHashTable(void) {
+    BookRegister* hashTable = (BookRegister*)malloc(sizeof(BookRegister));
+    if (hashTable == NULL) {
+        printf("End of memory");
+        exit(EXIT_FAILURE);
+    }
+
+    for (int i = 0; i < SIZE; i++) {
+        hashTable->Table[i] = NULL;
+    }
+
+    return hashTable;
+}
+
+//linking the key to the value
+BookTitleKeyValuePair* InitializeKeyValuePair(const char* Title, const char* HashKey) {
+    BookTitleKeyValuePair* kvp = (BookTitleKeyValuePair*)malloc(sizeof(BookTitleKeyValuePair));
+    if (kvp == NULL) {
+        printf("EOM");
+        exit(EXIT_FAILURE);
+    }
+
+    kvp->Title = _strdup(Title);
+    kvp->HashKey = _strdup(HashKey);
+    kvp->NextKeyValuePair = NULL;
+    return kvp;
+}
+
+//Add to hash table - seperate chaining method
+void AddToHashTable(BookRegister* hashTable, const char* Title, const char* HashKey) {
+    BookTitleKeyValuePair* kvp = InitializeKeyValuePair(Title, HashKey);
+    int hash = GenerateHash(Title);
+
+    if (hashTable->Table[hash] == NULL) { //bucket is empty
+        hashTable->Table[hash] = kvp;
+        return;
+    }
+
+    //collision occured - create array
+    BookTitleKeyValuePair* current = hashTable->Table[hash];
+    while (current->NextKeyValuePair != NULL) {
+        current = current->NextKeyValuePair;
+    }
+
+    current->NextKeyValuePair = kvp;
+}
+
+//Search hash table - seperate chaining method
+const char* SearchByTitleHashTable(BookRegister* hashTable, const char* word) {
+    int hash = GenerateHash(word);
+
+    if (hashTable->Table[hash] == NULL) {
+        return "ERROR: cannot find the Key in the table.";
+    }
+
+    BookTitleKeyValuePair* current = hashTable->Table[hash];
+
+    while (current != NULL) {
+        if (strcmp(current->Title, word) == 0) {
+            return current->HashKey;
+        }
+        current = current->NextKeyValuePair;
+    }
+
+    return "ERROR: cannot find the Key in the table.";
 }
