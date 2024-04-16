@@ -12,9 +12,13 @@ struct Hold{//Queue
 } Hold;
 
 
-//prototypes
-
-
+//prototypes (queue)
+Hold* InishalizeQueue(void);
+char* DeQueue (Hold* hold);
+void EnQueue (Hold* hold, char book[50], char title[50]);
+Book* CreateNewHold(char book[50], char name[50]);
+bool AreHolds (Hold* holds);
+Book* Front (Hold* hold);
 
 
 
