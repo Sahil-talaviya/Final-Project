@@ -2,22 +2,25 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#define SIZE 20
+#pragma warning(disable: 4996)
 
-struct Book {
-    char holder[50];        //library user requesting a book hold
-    char title[50];         //book title
-    struct Book* NextHold;  //next user hold in queue
+typedef struct Book {
+    char holder[50];
+    char title[50];
+    char author[50];
+    struct Book* NextHold;
 } Book;
 
-struct Hold{//Queue
-    Book* Front;    //head pointer
-    Book* Back;     //tail pointer
+typedef struct Hold {
+    Book* Front;
+    Book* Back;
 } Hold;
 
-//structs for hash table
 typedef struct BookTitleKeyValuePair {
+    int BookID;
     char* Title;
-    char* HashKey;
+    char* Author;
     struct BookTitleKeyValuePair* NextKeyValuePair;
 } BookTitleKeyValuePair;
 
@@ -25,31 +28,206 @@ typedef struct BookRegister {
     BookTitleKeyValuePair* Table[SIZE];
 } BookRegister;
 
+typedef struct BookStackNode {
+    char title[50];
+    char author[50];
+    struct BookStackNode* next;
+} BookStackNode;
+
+typedef struct {
+    BookStackNode* top;
+} BookStack;
+
+typedef struct BSTNode {
+    int bookID;
+    char title[50];
+    char author[50];
+    struct BSTNode* left, * right;
+} BSTNode;
 
 //prototypes (queue)
 Hold* InitializeQueue(void);
 char* DeQueue (Hold* hold);
 void EnQueue (Hold* hold, char book[50], char title[50]);
+bool AreHolds(Hold* holds);
 Book* CreateNewHold(char book[50], char name[50]);
-bool AreHolds (Hold* holds);
 char* Front (Hold* hold);
 
 //prototypes (hash table)
-int GenerateHash(const char* Title);
+int GenerateHash(int bookID);
 BookRegister* InitializeHashTable(void);
-BookTitleKeyValuePair* InitializeKeyValuePair(const char* Title, const char* HashKey);
-void AddToHashTable(BookRegister* hashTable, const char* Title, const char* HashKey);
-const char* SearchByTitleHashTable(BookRegister* hashTable, const char* word);
+BookTitleKeyValuePair* InitializeKeyValuePair(int ID, const char* title, const char* author);
+void AddToHashTable(BookRegister* hashTable, int bookID, const char* hashKey, const char* author);
+BookTitleKeyValuePair* SearchByBookIDHashTable(BookRegister* hashTable, int bookID);
+BookTitleKeyValuePair* SearchByTitle(BookRegister* hashTable, const char* title);
 
-int main(int argc, const char* argv[]){
-BookRegister* hashTable = InitializeHashTable();
+//prototypes (stack)
+BookStack* InitializeStack(void);
+void Push(BookStack* stack, char title[50]);
+char* Pop(BookStack* stack);
 
+//prototypes (Binary Search tree)
+BSTNode* NewBSTNode(int id, char title[50], char author[50]);
+BSTNode* Insert(BSTNode* node, int bookID, char title[50], char author[50]);
+void Inorder(BSTNode* root);
+
+//function prototypes
+void DisplayMenu();
+void HandleSearchBook(BookRegister* hashTable);
+void HandleBorrowBook(BookStack* stack, Hold* queue, BookRegister* hashTable);
+void HandleReturnBook(BookRegister* hashTable);
+void HandleDisplayBST(BSTNode* root);
+bool IsBookAvailable(BookRegister* hashTable, const char* title);
+
+int main(void) {
+    BookRegister* hashTable = InitializeHashTable();
+    Hold* queue = InitializeQueue();
+    BookStack* stack = InitializeStack();
+    BSTNode* bstRoot = NULL;
+
+    // Book details for initializing both BST and Hash Table
+    int bookIDs[] = { 1011, 2521, 3035, 4048, 9520, 3020, 1001, 1201 };
+    char* titles[] = {
+        "Surrounded by Idiots", "How to win friends and influence people",
+        "Power of Your Subconcious Mind", "Thinking Fast and Slow",
+        "Rich Dad, Poor Dad", "The 7 Habits of Highly Effective People",
+        "Data structures and algorithms in C++", "Clean Code"
+    };
+    char* authors[] = {
+        "Thomas Erikson", "Dale Carnegie", "Joseph Murphy", "Daniel Kahneman",
+        "Robert Kiyosaki", "Stephen Covey", "Adam Drozdek", "Robert Cecil Martin"
+    };
+
+    int numBooks = sizeof(bookIDs) / sizeof(bookIDs[0]);
+    for (int i = 0; i < numBooks; i++) {
+        // Insert book into BST
+        bstRoot = Insert(bstRoot, bookIDs[i], titles[i], authors[i]);
+        // Add the same book to the hash table
+        AddToHashTable(hashTable, bookIDs[i], titles[i], authors[i]);
+    }
+
+    while (1) {
+        DisplayMenu();
+        int choice;
+        printf("Enter your choice: ");
+        scanf("%d", &choice);
+        while (getchar() != '\n');
+
+        switch (choice) {
+        case 1:
+            HandleSearchBook(hashTable);
+            break;
+        case 2:
+            HandleBorrowBook(stack, queue, hashTable);
+            break;
+        case 3:
+            HandleReturnBook(hashTable);
+            break;
+        case 4:
+            HandleDisplayBST(bstRoot);
+            break;
+        case 5:
+            printf("Exiting the program.\n");
+            return 0;
+        default:
+            printf("Invalid choice, please try again.\n");
+        }
+    }
+    return 0;
 }
 
+void DisplayMenu() {
+    printf("\n--- Book Management System Menu ---\n");
+    printf("1. Search Book by BookId\n");
+    printf("2. Borrow Book\n");
+    printf("3. Return Book\n");
+    printf("4. Display Books\n");
+    printf("5. Exit\n");
+}
+
+void HandleSearchBook(BookRegister* hashTable) {
+    int bookID;
+    printf("Enter book ID to search: ");
+    scanf("%d", &bookID);
+
+    BookTitleKeyValuePair* result = SearchByBookIDHashTable(hashTable, bookID);
+    if (result == NULL) {
+        printf("ERROR: cannot find the book with ID %d in the table.\n", bookID);
+    }
+    else {
+        printf("\nBook found with following Information: \n");
+        printf("Title: %s\n", result->Title);
+        printf("Author: %s\n", result->Author);
+    }
+}
+
+void HandleBorrowBook(BookStack* stack, Hold* queue, BookRegister* hashTable) {
+    int bookID;
+    printf("Enter Book ID of the book to borrow: ");
+    scanf("%d", &bookID);
+
+    BookTitleKeyValuePair* book = SearchByBookIDHashTable(hashTable, bookID);
+    if (book == NULL) {
+        printf("Book not found in the library.\n");
+    } else {
+            Push(stack, book->Title);
+            EnQueue(queue, "Holder Name", book->Title);  // Assuming "Holder Name" is a placeholder
+            printf("Book '%s' borrowed successfully.\n", book->Title);
+        }
+}
+
+bool IsBookAvailable(BookRegister* hashTable, const char* title) {
+    for (int i = 0; i < SIZE; i++) {
+        BookTitleKeyValuePair* current = hashTable->Table[i];
+        while (current != NULL) {
+            if (strcmp(current->Title, title) == 0) {
+                return true; // Book found
+            }
+            current = current->NextKeyValuePair;
+        }
+    }
+    return false; // Book not found
+}
+
+BookTitleKeyValuePair* SearchByTitle(BookRegister* hashTable, const char* title) {
+    for (int i = 0; i < SIZE; i++) {
+        BookTitleKeyValuePair* current = hashTable->Table[i];
+        while (current) {
+            if (strcmp(current->Title, title) == 0) {
+                return current;
+            }
+            current = current->NextKeyValuePair;
+        }
+    }
+    return NULL;  // Book not found
+}
+
+void HandleReturnBook(BookRegister* hashTable) {
+
+    int bookID;
+    printf("Enter the Book ID of the book you want to return: ");
+    scanf("%d", &bookID);
+
+    BookTitleKeyValuePair* book = SearchByBookIDHashTable(hashTable, bookID);
+    if (book == NULL) {
+        printf("No such book found in the library.\n");
+    }
+    else {
+        printf("Book '%s' returned successfully.\n", book->Title);
+    }
+}
+
+void HandleDisplayBST(BSTNode* root) {
+    printf("\nAll the books in Library:\n");
+    Inorder(root);
+}
 
 //Queue===================================================================
+bool AreHolds(Hold * holds) {
+        return holds->Front == NULL;
+    }
 
-//inishalize queue
+
 Hold* InitializeQueue(void){
     Hold* holds = (Hold*)malloc(sizeof(Hold));
     if(holds == NULL){
@@ -61,9 +239,6 @@ Hold* InitializeQueue(void){
     holds->Back = NULL;
     return holds;
 }
-
-
-//dequeue
 
 char* DeQueue (Hold* hold){
     if(AreHolds(hold) == false){
@@ -79,8 +254,6 @@ char* DeQueue (Hold* hold){
     
 }
 
-
-//enqueue
 void EnQueue (Hold* hold, char book[50], char title[50]) {
     if(hold == NULL){
         hold = InitializeQueue();
@@ -95,10 +268,9 @@ void EnQueue (Hold* hold, char book[50], char title[50]) {
         hold->Back->NextHold = toEnqueue;
         hold->Back = toEnqueue;
     }
+
 }
 
-
-//new node
 Book* CreateNewHold(char book[50], char name[50]){
     Book* newHold = (Book*)malloc(sizeof(Book));
     if(newHold == NULL){
@@ -109,45 +281,26 @@ Book* CreateNewHold(char book[50], char name[50]){
     for(int i = 0; i < 50; i++){
         newHold->title[i] = book[i];
     }
-    
     for(int i = 0; i < 50; i++){
         newHold->holder[i] = name[i];
     }
-    
     newHold->NextHold = NULL;
     return newHold;
 }
 
-
-//is empty
-bool AreHolds (Hold* holds){
-    return holds->Front == NULL;
-}
-
-
-//front
 char* Front (Hold* hold){
-    
-    if(AreHolds(hold)){
+   
+    if(hold->Front == NULL){
         printf("Queue is Empty");
         return NULL;
     }
-    
     return hold->Front->holder;
 }
 
-//hash table===================================================================
-//create the hash table
-int GenerateHash(const char* Title) {
-    int hash = 0;
-    for (int i = 0; Title[i] != '\0'; i++) {
-        int asciiValue = Title[i];
-        hash = (hash + asciiValue) % SIZE;
-    }
-    return hash;
+int GenerateHash(int bookID) {
+    return bookID % SIZE;
 }
 
-//initialize the hash table
 BookRegister* InitializeHashTable(void) {
     BookRegister* hashTable = (BookRegister*)malloc(sizeof(BookRegister));
     if (hashTable == NULL) {
@@ -162,58 +315,122 @@ BookRegister* InitializeHashTable(void) {
     return hashTable;
 }
 
-//linking the key to the value
-BookTitleKeyValuePair* InitializeKeyValuePair(const char* Title, const char* HashKey) {
+BookTitleKeyValuePair* InitializeKeyValuePair(int ID, const char* title, const char* author) {
     BookTitleKeyValuePair* kvp = (BookTitleKeyValuePair*)malloc(sizeof(BookTitleKeyValuePair));
     if (kvp == NULL) {
-        printf("EOM");
+        printf("Memory allocation failed");
         exit(EXIT_FAILURE);
     }
-
-    kvp->Title = _strdup(Title);
-    kvp->HashKey = _strdup(HashKey);
+    kvp->BookID = ID;
+    kvp->Title = strdup(title); 
+    kvp->Author = strdup(author); 
     kvp->NextKeyValuePair = NULL;
     return kvp;
 }
 
 //Add to hash table - seperate chaining method
-void AddToHashTable(BookRegister* hashTable, const char* Title, const char* HashKey) {
-    BookTitleKeyValuePair* kvp = InitializeKeyValuePair(Title, HashKey);
-    int hash = GenerateHash(Title);
-
-    if (hashTable->Table[hash] == NULL) { //bucket is empty
-        hashTable->Table[hash] = kvp;
-        return;
+void AddToHashTable(BookRegister* hashTable, int bookID, const char* title, const char* author) {
+    int index = GenerateHash(bookID);
+    BookTitleKeyValuePair* kvp = (BookTitleKeyValuePair*)malloc(sizeof(BookTitleKeyValuePair));
+    if (kvp == NULL) {
+        printf("Memory allocation failed.\n");
+        exit(EXIT_FAILURE);
     }
+    kvp->BookID = bookID;
+    kvp->Title = strdup(title);
+    kvp->Author = strdup(author);
+    kvp->NextKeyValuePair = NULL;
 
-    //collision occured - create array
-    BookTitleKeyValuePair* current = hashTable->Table[hash];
-    while (current->NextKeyValuePair != NULL) {
-        current = current->NextKeyValuePair;
+    if (hashTable->Table[index] == NULL) {
+        hashTable->Table[index] = kvp;
     }
-
-    current->NextKeyValuePair = kvp;
+    else {
+        BookTitleKeyValuePair* current = hashTable->Table[index];
+        while (current->NextKeyValuePair) {
+            current = current->NextKeyValuePair;
+        }
+        current->NextKeyValuePair = kvp;
+    }
 }
 
 //Search hash table - seperate chaining method
-const char* SearchByTitleHashTable(BookRegister* hashTable, const char* word) {
-    int hash = GenerateHash(word);
-
-    if (hashTable->Table[hash] == NULL) {
-        return "ERROR: cannot find the Key in the table.";
-    }
-
-    BookTitleKeyValuePair* current = hashTable->Table[hash];
-
-    while (current != NULL) {
-        if (strcmp(current->Title, word) == 0) {
-            return current->HashKey;
+BookTitleKeyValuePair* SearchByBookIDHashTable(BookRegister* hashTable, int bookID) {
+    int index = GenerateHash(bookID);
+    BookTitleKeyValuePair* current = hashTable->Table[index];
+    while (current) {
+        if (current->BookID == bookID) {
+            return current;
         }
         current = current->NextKeyValuePair;
     }
-
-    return "ERROR: cannot find the Key in the table.";
+    return NULL;
 }
 
+BookStack* InitializeStack(void) {
+    BookStack* stack = (BookStack*)malloc(sizeof(BookStack));
+    if (stack == NULL) {
+        printf("Memory error");
+        exit(1);
+    }
+    stack->top = NULL;
+    return stack;
+}
 
+void Push(BookStack* stack, char title[50]) {
+    BookStackNode* node = (BookStackNode*)malloc(sizeof(BookStackNode));
+    if (node == NULL) {
+        printf("Memory error");
+        exit(1);
+    }
+    strcpy(node->title, title);
+    node->next = stack->top;
+    stack->top = node;
+}
 
+char* Pop(BookStack* stack) {
+    if (stack->top == NULL) {
+        return NULL;
+    }
+    BookStackNode* node = stack->top;
+    stack->top = node->next;
+    char* title = strdup(node->title);
+    free(node);
+    return title;
+}
+
+BSTNode* NewBSTNode(int id, char title[50], char author[50]) {
+    BSTNode* node = (BSTNode*)malloc(sizeof(BSTNode));
+    if (node == NULL) {
+        printf("Memory error");
+        exit(1);
+    }
+    node->bookID = id;
+    strcpy(node->title, title);
+    strcpy(node->author, author);
+    node->left = node->right = NULL;
+    return node;
+}
+
+BSTNode* Insert(BSTNode* node, int bookID, char title[50], char author[50]) {
+    if (node == NULL) {
+        return NewBSTNode(bookID, title, author);
+    }
+    if (bookID < node->bookID) {
+        node->left = Insert(node->left, bookID, title, author);
+    }
+    else if (bookID > node->bookID) {
+        node->right = Insert(node->right, bookID, title, author);
+    }
+    return node;
+}
+
+void Inorder(BSTNode* root) {
+    if (root != NULL)
+    {
+        Inorder(root->left);
+        printf("Book ID: %d\n", root->bookID);
+        printf("Book Name: %s\n", root->title);
+        printf("Author Name: %s\n\n", root->author);
+        Inorder(root->right);
+    }
+}
